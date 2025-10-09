@@ -1,0 +1,73 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.30;
+
+contract SimpleERC1155 {
+    // Owner
+    address public owner;
+
+    // Mapping: tokenId => account => balance
+    mapping(uint256 => mapping(address => uint256)) private _balances;
+
+    // Mapping: tokenId => URI
+    mapping(uint256 => string) private _uris;
+
+    // Events
+    event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value);
+    event URI(string value, uint256 indexed id);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    // Balance of
+    function balanceOf(address account, uint256 id) public view returns (uint256) {
+        require(account != address(0), "Zero address");
+        return _balances[id][account];
+    }
+
+    // Set URI (only owner)
+    function setURI(uint256 id, string memory newuri) public onlyOwner {
+        _uris[id] = newuri;
+        emit URI(newuri, id);
+    }
+
+    // URI
+    function uri(uint256 id) public view returns (string memory) {
+        return _uris[id];
+    }
+
+    // Mint tokens
+    function mint(address to, uint256 id, uint256 amount, string memory tokenURI) public onlyOwner {
+        require(to != address(0), "Zero address");
+        _balances[id][to] += amount;
+        _uris[id] = tokenURI;
+
+        emit TransferSingle(msg.sender, address(0), to, id, amount);
+        emit URI(tokenURI, id);
+    }
+
+    // Safe transfer single
+    function safeTransferFrom(address from, address to, uint256 id, uint256 amount) public {
+        require(from == msg.sender, "Not owner");
+        require(to != address(0), "Zero address");
+        require(_balances[id][from] >= amount, "Insufficient balance");
+
+        _balances[id][from] -= amount;
+        _balances[id][to] += amount;
+
+        emit TransferSingle(msg.sender, from, to, id, amount);
+    }
+
+    // Withdraw ETH (optional)
+    function withdraw() external onlyOwner {
+        payable(owner).transfer(address(this).balance);
+    }
+
+    // Receive ETH fallback
+    receive() external payable {}
+}
