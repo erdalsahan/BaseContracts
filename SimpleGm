@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.30;
+
+contract GmLite {
+    address public owner;
+
+    event GMSent(address indexed from, string message, uint256 timestamp);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Sadece owner");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    // Mesajları sadece event olarak kaydet, storage'a yazma
+    function sendGM(string calldata message) external {
+        emit GMSent(msg.sender, message, block.timestamp);
+    }
+
+    // Owner Ether çekebilir
+    function withdraw() external onlyOwner {
+        payable(owner).transfer(address(this).balance);
+    }
+
+    // Ether gönderebilirsin
+    receive() external payable {}
+}
