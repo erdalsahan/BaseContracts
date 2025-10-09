@@ -1,0 +1,72 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.30;
+
+contract SimpleNFT {
+    // ERC-721 Storage
+    string public name = "SimpleNFT";
+    string public symbol = "SNFT";
+
+    uint256 public totalSupply;
+    uint256 public mintPrice = 0.00005 ether;
+
+    address public owner;
+
+    mapping(uint256 => address) private _owners;
+    mapping(address => uint256) private _balances;
+    mapping(uint256 => string) private _tokenURIs;
+
+    // Events
+    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
+    event Mint(address indexed to, uint256 indexed tokenId, string tokenURI);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+    }
+
+    // ERC-721 balanceOf
+    function balanceOf(address _owner) public view returns (uint256) {
+        require(_owner != address(0), "Zero address");
+        return _balances[_owner];
+    }
+
+    // ERC-721 ownerOf
+    function ownerOf(uint256 tokenId) public view returns (address) {
+        address _owner = _owners[tokenId];
+        require(_owner != address(0), "Token does not exist");
+        return _owner;
+    }
+
+    // ERC-721 tokenURI
+    function tokenURI(uint256 tokenId) public view returns (string memory) {
+        require(_owners[tokenId] != address(0), "Token does not exist");
+        return _tokenURIs[tokenId];
+    }
+
+    // Mint NFT (payable)
+    function mint(string memory _uri) public payable {
+        require(msg.value >= mintPrice, "Insufficient ETH sent");
+
+        uint256 tokenId = totalSupply + 1;
+        totalSupply = tokenId;
+
+        _owners[tokenId] = msg.sender;
+        _balances[msg.sender] += 1;
+        _tokenURIs[tokenId] = _uri;
+
+        emit Transfer(address(0), msg.sender, tokenId);
+        emit Mint(msg.sender, tokenId, _uri);
+    }
+
+    // Withdraw ether
+    function withdraw() external onlyOwner {
+        payable(owner).transfer(address(this).balance);
+    }
+
+    // Receive ETH fallback
+    receive() external payable {}
+}
